@@ -1,5 +1,5 @@
-This directory stores calibration functions for the three-phase 
-(solid-liquid-gas) mixture.
+This directory contains a library of calibration functions for 
+various multiphase mixtures.
 
 Each function takes in a [NPHS x Npts] matrix of phase fractions 
 f, and any other pure-phase material properties. 

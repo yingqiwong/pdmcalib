@@ -7,7 +7,7 @@ function [phigcrit] = gcrit_parmi (f)
 % the models are valid for solid fractions between [0.39, 0.7].
 
 phigcrit = 0.7495*f(1,:).^3 - 0.4268*f(1,:).^2 - 0.1626*f(1,:) + 0.1478;
-phigcrit(f(1,:)<0.39 || f(1,:)>0.7) = nan;
+phigcrit(f(1,:)<0.39 | f(1,:)>0.7) = nan;
 
 
 end

@@ -5,5 +5,4 @@ function [eta] = visc_hk (f, eta_s)
 lam  = 27;
 eta  = eta_s.*exp(-lam.*f(2,:));
 
-
 end

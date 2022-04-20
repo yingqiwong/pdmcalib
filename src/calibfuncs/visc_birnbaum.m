@@ -9,7 +9,7 @@ Bsol = 2.74;
 eta_s = eta_melt * ((1-f(3,:)).^(-Bgas)) .* ((1-f(1,:)/smax).^(-Bsol));
 
 eta_s(f(1,:)>0.8*smax) = nan;
-eta_s(f(3,:)>gmax) = nan;
+eta_s(f(3,:)>0.8*gmax) = nan;
 
 
 end

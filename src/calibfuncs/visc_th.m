@@ -12,6 +12,9 @@ d    = 2;
 eta  = c.*eta_s.*xf.^d;
 zeta = c.*eta_s.*xf.^d;
 
+eta( f(1,:)<0.8) = nan;
+zeta(f(1,:)<0.8) = nan;
+
 
 
 end

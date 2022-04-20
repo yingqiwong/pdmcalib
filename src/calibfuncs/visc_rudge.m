@@ -4,8 +4,10 @@ function [eta, zeta] = visc_rudge (f, eta_s)
 TINY = 1e-32;
 HUGE = 1e+32;
 
+feff = f(1:2,:)./sum(f(1:2,:),1);
+
 % Rudge effective solid shear and compaction viscosities  (Rudge, 2018)
-nu       = min(1e32,-1./log(f(2,:)));
+nu       = min(HUGE,-1./log(feff(2,:)));
 a1       = -4.28207265;
 a2       = 7.36988663;
 a3       = -4.98396638;
@@ -19,13 +21,11 @@ zeta = min(HUGE,max(TINY,  eta.*(160.*sqrt(2)./(139.*pi.*nu) + b1 + b2.*nu + b3.
 
 
 % set phase fraction limits for this model
-gmax = 0.05;
 lmax = 0.10;
+smax = 0.9999999;
 
-eta( f(3,:)>gmax) = nan;
-eta( f(2,:)>lmax) = nan;
-zeta(f(3,:)>gmax) = nan;
-zeta(f(2,:)>lmax) = nan;
+eta( feff(2,:)>lmax | feff(1,:)>smax) = nan;
+zeta(feff(2,:)>lmax | feff(1,:)>smax) = nan;
 
 
 end

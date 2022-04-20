@@ -2,7 +2,7 @@
 % for plg-dac-mvp system
 % YQW, 19 March 2021
 
-clear all; close all;
+clear all; %close all;
 Addpaths;
 
 %%  set pure phase properties
@@ -26,9 +26,9 @@ C = [ 0.20, 0.20, 0.20; 0.60, 0.60, 0.12; 0.20, 0.25, 0.50; ];  % permission ste
 % C = [ 0.10, 0.18, 0.20; 0.82, 0.40, 0.12; 0.20, 0.25, 0.50; ];  % permission step widths
 
 % inspired by parmigiani 2017
-A = [ 0.60, 0.25, 0.30; 0.20, 0.20, 0.20; 0.20, 0.20, 0.20; ];  % permission slopes
-B = [ 0.30, 0.15, 0.55; 0.48, 0.02, 0.50; 0.52, 0.43, 0.05; ];  % permission step locations
-C = [ 0.20, 0.20, 0.20; 0.60, 0.60, 0.12; 1.00, 0.25, 1.50; ];  % permission step widths
+% A = [ 0.60, 0.25, 0.30; 0.20, 0.20, 0.20; 0.20, 0.20, 0.20; ];  % permission slopes
+% B = [ 0.30, 0.15, 0.55; 0.48, 0.02, 0.50; 0.52, 0.43, 0.05; ];  % permission step locations
+% C = [ 0.20, 0.20, 0.20; 0.60, 0.60, 0.12; 1.00, 0.25, 1.50; ];  % permission step widths
 
 
 %% initialize phase fractions
@@ -58,6 +58,10 @@ Plot3PhaseCoeff(f, cat(3,Kv,Kf), 'scl', 'log', 'PHS', PHS, 'cfname', {'K_v','K_f
 Plot3PhaseCoeff(f, cat(3,Cv,Cf), 'scl', 'log', 'PHS', PHS, 'cfname', {'C_v','C_f'});
 % SaveFigure('Figures/plgdacmvp_C');
 
+Plot3PhaseCoeff(f, cat(3,f.^2./Cv,f.^2./Cf), 'scl', 'log', 'PHS', PHS, 'cfname', {'\phi^2/C_v','\phi^2/C_\phi'});
+% SaveFigure('Figures/plgdacmvp_segcompcoeff');
+
+
 omCv = Cv./sum(Cv,1);
 omCf = Cf./sum(Cf,1);
 Plot3PhaseCoeff(f, cat(3,omCv,omCf), 'PHS', PHS, 'cfname', {'\omega_{Cv}','\omega_{Cf}'}, 'cflim', [0;1].*ones(1,2));
@@ -70,5 +74,4 @@ Plot3PhaseCoeff(f, dscmat, 'scl', 'log', 'PHS', PHS, 'cfname', {'\delta_{sc}'});
 
 %% plot dsc 2D
 
-PlotPerm2D(3, [0.1,0.05,0.01], eta0, d0, A, B, C, 2);
-
+PlotPerm2D(3, [0.1,0.01], eta0, d0, A, B, C, 2, {'s','\ell','g'});

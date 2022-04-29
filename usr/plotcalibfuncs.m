@@ -6,7 +6,7 @@ clear all; clc; %close all;
 Addpaths
 
 fprintf('\n\nThe list of available calibration functions are: \n');
-dir('../calibfuncs/*.m')
+dir('../src/calibfuncs/*.m')
 fprintf('\n\n');
 
 load ocean.mat
@@ -257,6 +257,74 @@ ylabel('segregation coefficient [m$^2$/Pa s]');
 sgtitle('coefficients on gas-liquid axis');
 
 % SaveFigure('Figures/coeffs_gasliquidaxis');
+
+
+%% define the models to calibrate against
+
+dir('../src/calibfuncs/*.m')
+
+Nf = 100;       % number of points to generate data on
+Ns = 50;        % number of points to subsample for inversion
+
+% set up phase fractions
+f0   = SetUp3PhsMatrix(Nf);             % three-phase variation
+fgl0 = SetUp3PhsMatrix(Nf, 1, 0.001);   % along gas-liquid axis
+fgs0 = SetUp3PhsMatrix(Nf, 2, 0.001);   % along gas-solid axis
+fsl0 = SetUp3PhsMatrix(Nf, 3, 0.001);   % along solid-liquid axis
+
+% three phase viscosities
+[eta_tb         ] = visc_truby(f0, eta0(2));
+[eta_tb,f_eta_tb] = samplevalidvalues(log10(eta_tb),f0,Ns,1);
+
+% viscosity along solid liquid axis
+[ eta_co,   zeta_co] = visc_costa(fsl0, eta0(2));
+  eta_co(fsl0(1,:)<0.3 | fsl0(1,:)>0.8) = nan;
+ zeta_co(fsl0(1,:)<0.8) = nan;
+[ eta_co,  f_eta_co] = samplevalidvalues(log10( eta_co),fsl0,Ns,1);
+[zeta_co, f_zeta_co] = samplevalidvalues(log10(zeta_co),fsl0,Ns,1);
+
+% hindered Stokes on dispersed solid phase
+[vold_hs_s,   seg_hs_s] = voldiff_hs(fsl0(2,:), fsl0(1,:), eta0(2), d0(1));
+[vold_hs_s,f_vold_hs_s] = samplevalidvalues(log10(vold_hs_s),fsl0,Ns,0);
+[ seg_hs_s, f_seg_hs_s] = samplevalidvalues(log10( seg_hs_s),fsl0,Ns,0);
+
+% hindered Stokes on dispersed bubble phase
+[vold_hs_g,   seg_hs_g] = voldiff_hs(fgl0(2,:), fgl0(3,:), eta0(2), d0(3));
+[vold_hs_g,f_vold_hs_g] = samplevalidvalues(log10(vold_hs_g),fgl0,Ns,0);
+[ seg_hs_g, f_seg_hs_g] = samplevalidvalues(log10( seg_hs_g),fgl0,Ns,0);
+
+% kozeny carman on melt percolation
+[segKC_l          ] = perm_kc(fsl0(1,:), fsl0(2,:), eta0(2), d0(1));
+[segKC_l,f_segKC_l] = samplevalidvalues(log10(segKC_l),fsl0,Ns,0);
+
+% kozeny carman on mvp percolation
+[segKC_g          ] = perm_kc(fgs0(1,:), fgs0(3,:), eta0(3), d0(1));
+[segKC_g,f_segKC_g] = samplevalidvalues(log10(segKC_g),fgs0,Ns,0);
+
+% critical gas fraction from parmigiani
+[kmvp, f_gcrit] = gcrit_parmi(fsl0);
+[kmvp, f_gcrit] = samplevalidvalues(log10(kmvp/eta0(3)),f_gcrit,Ns,0);
+
+
+%% cast data into form for model outputs - all possible calib data
+% possible options for dcat:
+% etamix    mixture viscosity
+% voldmix   mixture volume diffusion
+% comp1     compaction coefficient of phase 1
+% segr1     segregation coefficient of phase 1
+% segr2     segregation coefficient of phase 2
+% segr3     segregation coefficient of phase 3
+% mvpcrt    critical mvp fraction for channelization onset
+
+ftot = [f_gcrit, f_eta_tb, f_eta_co, f_zeta_co, f_segKC_l, f_seg_hs_s, f_seg_hs_g, f_segKC_g];
+data = [  kmvp ,   eta_tb,   segKC_l,   eta_co,   zeta_co,   seg_hs_s,   seg_hs_g,   segKC_g];
+dcat = repelem({'segr3','etamix','etamix','comp1','segr2','segr1','segr3','segr3'},1,Ns);
+sigm = ones(size(data));
+
+% plot where data is defined on tern axes
+plotdataonternaxis(ftot, dcat);
+
+% SaveFigure('Figures/possiblecalibmodels');
 
 
 

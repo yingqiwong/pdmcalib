@@ -13,13 +13,13 @@ Addpaths; addpath('../../paramest/catmip/');
 %% specify some inputs
 
 outdir  = '../out/';        % output directory
-runID   = 'test';           % name of this inversion
+runID   = 'wide';           % name of this inversion
 
-distrib = 'normal';        % 'uniform' or 'normal' prior distribution
+distrib = 'bounded_normal';        % 'uniform' or 'normal' prior distribution
 
 % catmip options
-Niter   = 1e4;              % number of iterations per catmip temperature
-Nstep   = 400;              % number of steps in MCMC in catmip
+Niter   = 1e5;              % number of iterations per catmip temperature
+Nstep   = 1e3;              % number of steps in MCMC in catmip
 pllopt  = 8;                % whether to run in parallel, number of workers
 
 %% material properties
@@ -56,14 +56,22 @@ Ci = 19:27;
 
 %% define parameters of the prior distribution
 
+xbnds(Ai,:) = [-1, 0].*ones(NPHS^2,1);
+xbnds(Bi,:) = [-4, 0].*ones(NPHS^2,1);
+xbnds(Ci,:) = [-2, 1].*ones(NPHS^2,1);
+
 switch distrib
     case 'uniform'
-        xd(Ai,:) = [-2, 0].*ones(NPHS^2,1);
-        xd(Bi,:) = [-2, 0].*ones(NPHS^2,1);
-        xd(Ci,:) = [-2, 1].*ones(NPHS^2,1);
+        xd = xbnds;
+        
     case 'normal'
         xd(:,1)  = xccep;
-        xd(:,2)  = 0.2*ones(size(xccep));
+        xd(:,2)  = 0.5*ones(size(xccep));
+        
+    case 'bounded_normal'
+        xd(:,1) = xccep;
+        xd(:,2) = 0.2*ones(size(xccep));
+        xd(:,3:4) = xbnds; 
 end
 
 %% some other initialization for this inversion run
@@ -81,7 +89,7 @@ diary(logfile)
 %% define the models to calibrate against
 
 rng(5);
-dir('../src/calibfuncs/*.m')
+%dir('../src/calibfuncs/*.m')
 
 Nf = 100;       % number of points to generate data on
 Ns = 40;        % number of points to subsample for inversion
@@ -102,6 +110,10 @@ fsl0 = SetUp3PhsMatrix(Nf, 3, 0.001);   % along solid-liquid axis
  zeta_co(fsl0(1,:)<0.8 | fsl0(1,:)>0.99) = nan;
 [ eta_co,  f_eta_co] = samplevalidvalues(log10( eta_co),fsl0,Ns,1);
 [zeta_co, f_zeta_co] = samplevalidvalues(log10(zeta_co),fsl0,Ns,1);
+
+% viscosity along gas liquid axis
+eta_ll = visc_ll(fgl0, eta0(2));
+[eta_ll, f_eta_ll] = samplevalidvalues(log10(eta_ll),fgl0,Ns,1);
 
 % hindered Stokes on dispersed solid phase
 [vold_hs_s,   seg_hs_s] = voldiff_hs(fsl0(2,:), fsl0(1,:), eta0(2), d0(1));
@@ -136,10 +148,10 @@ fsl0 = SetUp3PhsMatrix(Nf, 3, 0.001);   % along solid-liquid axis
 % segr3     segregation coefficient of phase 3
 % mvpcrt    critical mvp fraction for channelization onset
 
-ftot = [f_gcrit, f_eta_tb, f_segKC_l, f_eta_co, f_zeta_co, f_seg_hs_s];
-data = [  kmvp ,   eta_tb,   segKC_l,   eta_co,   zeta_co,   seg_hs_s];
-dcat = repelem({'segr3','etamix','segr2','etamix','comp1','segr1'},1,Ns);
-sigm = reshape([0.5,1,1,1,1,1].*ones(Ns,1),1,[])';
+ftot = [f_eta_tb, f_eta_co, f_eta_ll, f_gcrit, f_segKC_l, f_zeta_co, f_seg_hs_s];
+data = [  eta_tb,   eta_co,   eta_ll,   kmvp ,   segKC_l,   zeta_co,   seg_hs_s];
+dcat = repelem({'etamix','etamix','etamix','segr3','segr2','comp1','segr1'},1,Ns);
+sigm = reshape([1,1,1,1,1,1,1].*ones(Ns,1),1,[])';
 
 % plot where data is defined on tern axes
 plotdataonternaxis(ftot, dcat);
@@ -153,11 +165,11 @@ dhf = @(xt ) calccoeffs(xt, ftot, eta0, d0, dcat);
 lmf = @(xt ) likelihoodfrommodel(xt, ftot, eta0, d0, data, dcat, sigm);
 
 dhf(xccep); lmf(xccep); psf(10);
-plotfittodata(ftot, data, dhf(xccep), dcat, sigm);
+plotfittodata(ftot, Ns, data, dhf(xccep), dcat, sigm);
 
 %% run catmip
 
-[xout, Pout, dhat, RunTime, allmodels] = catmip(...
+[xout, Pout, dhat, RunTime, allmodels, chainpp] = catmip(...
     prf,psf,lmf,'Niter',Niter,'Nsteps',Nstep,'Parallel',logical(pllopt),'Ncores',pllopt);
 
 %% plot outputs
@@ -172,11 +184,21 @@ for fi = 1:length(figs)
     SaveFigure([rundir runID '_correlations_' num2str(fi) '.pdf'], figs(fi));
 end
 
+% plot the metropolis chains to check mixing
+Ntmpr = size(allmodels,3);
+figure; 
+set(gcf,'defaultaxescolororder',parula(Ntmpr),'Position',[300,300,900,450]);
+semilogy(1:Nstep, chainpp);
+hleg = legend(num2str((0:(Ntmpr-1))'),'Location','EastOutside','NumColumns',2); 
+title(hleg,'temper step');
+xlabel('metropolis steps'); ylabel('log posterior prob');
+SaveFigure([rundir runID '_metropolischainmixing.pdf']);
+
 % print out MAP model
 [A_MAP, B_MAP, C_MAP] = permvec2mat(xMAP, 'log')
 
 % plot the fit to the datasets
-plotfittodata(ftot, data, dhf(xMAP), dcat, sigm);
+plotfittodata(ftot, Ns, data, dhf(xMAP), dcat, sigm);
 SaveFigure([rundir runID '_xMAP_fittodata.pdf']);
 
 % now calculate connectivity and coefficients for plotting
@@ -187,16 +209,34 @@ fout = SetUp3PhsMatrix(200);
 ax = Plot3PhasePerm(fout, Xf, PHS);
 SaveFigure([rundir runID '_xMAP_connectivity.pdf']);
 
+% plot coefficients
+Plot3PhaseCoeff(fout, cat(3,Kv,Kf,Cv,Cf), 'scl','log','PHS',PHS,'cfname',{'K_v','K_\phi','C_v','C_\phi'});
+SaveFigure([rundir runID '_xMAP_coeffs.pdf']);
+
 % plot effective viscosity and volume diffusivity
-Plot3PhaseCoeff(fout,cat(3,Kv,Kf),'scl','log','PHS',PHS,'cfname',{'(K_v/\phi)','(K_\phi/\phi)'});
+Plot3PhaseCoeff(fout,cat(3,Kv./fout,Kf./fout),'scl','log','PHS',PHS,'cfname',{'(K_v/\phi)','(K_\phi/\phi)'});
 SaveFigure([rundir runID '_xMAP_fluxcoeff.pdf']);
 
 % plot segregation and compaction coefficients
 Plot3PhaseCoeff(fout,cat(3,fout.^2./Cv,fout.^2./Cf),'scl','log','PHS',PHS,'cfname',{'(\phi^2/C_v)','(\phi^2/C_\phi)'});
 SaveFigure([rundir runID '_xMAP_segcompcoeff.pdf']);
 
+% plot weights
+omCv = Cv./sum(Cv,1);
+omCf = Cf./sum(Cf,1);
+omKf = Kf./sum(Kf,1);
+Plot3PhaseCoeff(fout,cat(3,omCv,omCf,omKf),'PHS',PHS,'cfname',{'(\omega_{Cv})','(\omega_{C\phi})','(\omega_{K\phi})'});
+SaveFigure([rundir runID '_xMAP_vpweights.pdf']);
 
-save([rundir runID '_par.mat'],'runID','distrib','Niter','Nstep','pllopt',...
+% plot segregation-compaction lengths
+pltname = strcat('$\log_{10}\delta_0^{', repmat(PHS(:),3,1), '-', repelem(PHS(:),3,1), '}$');
+Plot3PhaseCoeff(fout,permute(dsc,[2,3,1]),'scl','log','PHS',PHS,'pltname',pltname,'cflim',[1e-4,max(dsc(:),[],'all')]);
+SaveFigure([rundir runID '_xMAP_segcomplength.pdf']);
+
+figmat = PlotPerm2D (3, [0.05,0.1,0.2], eta0, d0, A_MAP,B_MAP,C_MAP, 2, PHS);
+SaveFigure([rundir runID '_xMAP_segcomplength2D.pdf']);
+
+save([rundir runID '_par.mat'],'PHS','runID','distrib','Niter','Nstep','pllopt','vname',...
     'rho0','eta0','d0','xccep','xd','ftot','data','dcat','sigm','xout','Pout');
 diary off
 

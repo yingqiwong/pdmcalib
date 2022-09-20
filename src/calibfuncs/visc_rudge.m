@@ -21,7 +21,7 @@ zeta = min(HUGE,max(TINY,  eta.*(160.*sqrt(2)./(139.*pi.*nu) + b1 + b2.*nu + b3.
 
 
 % set phase fraction limits for this model
-lmax = 0.10;
+lmax = 0.30;
 smax = 0.9999999;
 
 eta( feff(2,:)>lmax | feff(1,:)>smax) = nan;

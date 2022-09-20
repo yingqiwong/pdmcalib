@@ -23,12 +23,14 @@ switch distrib
     case 'normal'   
         % where xd = [mean, standard deviation]
         pvar = - ( (x(:) - xd(:,1))./xd(:,2) ).^2;
-        
-        %pvar = normpdf(x(:), xd(:,1), xd(:,2));
-        
+                
     case 'uniform'  
         % where xd = [lower, upper]
         pvar = log( double(x(:)>=xd(:,1) & x(:)<=xd(:,2)) );
+        
+    case 'bounded_normal'
+        pvar = - ( (x(:) - xd(:,1))./xd(:,2) ).^2;
+        pvar(x(:)<xd(:,3) | x(:)>xd(:,4)) = -1e6;
 end
 
 % get joint probability 

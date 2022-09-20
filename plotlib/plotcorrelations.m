@@ -18,7 +18,7 @@ function [fig] = plotcorrelations (x, p, vname, xd, distrib)
 
 % collect info on some sizes
 NPHS = sqrt(length(vname)/3);
-Nplt = 3*NPHS;
+Nplt = NPHS*3;
 Nbin = 100;
 Nx   = size(x,1);
 
@@ -34,16 +34,17 @@ Ci = find(contains(vname, 'C'));
 switch distrib
     case 'normal',  xbnds = xd(:,1) + 4*[-1,1].*xd(:,2);    % limits are 4 standard deviations
     case 'uniform', xbnds = xd;                             % limits are parameter bounds
+    case 'bounded_normal', xbnds = xd(:,3:4);               % limits are parameter bounds
 end
 
 
 % plot correlations
 for iphs = 1:NPHS
     fig(iphs) = figure;
-    hAx = setupaxes(NPHS^2,NPHS^2,'width',5,'height',4,'gapw',0,'gaph',0,'left',0.5,'right',1.5,'top',1,'bot',1.3);
+    hAx = setupaxes(NPHS*3,NPHS*3,'width',4,'height',3,'gapw',0,'gaph',0,'left',0.5,'right',1.5,'top',1,'bot',1.3);
     
-    xind = (0:2)*NPHS^2 + iphs + (0:3:6)';
-    
+    xind = (0:2)*NPHS^2 + iphs + (0:NPHS:(NPHS^2-1))';
+        
     vphs    = vname(  xind(:)   );
     xphs    =     x(:,xind(:)   );
     xMAPphs =  xMAP(  xind(:)   );
@@ -65,7 +66,7 @@ for iphs = 1:NPHS
                 hold off;
                 
                 % plot normal distribution?
-                if strcmp(distrib, 'normal')
+                if contains(distrib, 'normal')
                     plotnormd(xdphs(mi,1), xdphs(mi,2), Nx*hhist.BinWidth);
                 end
                 

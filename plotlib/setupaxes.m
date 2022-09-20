@@ -24,7 +24,7 @@ end
 fh = ax.bot  + Nrow*ax.height + (Nrow-1)*ax.gaph + ax.top;
 fw = ax.left + Ncol*ax.width  + (Ncol-1)*ax.gapw + ax.right; 
 
-set(gcf,'Units','centimeters','Position',[5 20 fw fh]);
+set(gcf,'Units','centimeters','Position',[5 5 fw fh]);
 set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 fw fh],'PaperSize',[fw fh]);
 set(gcf,'defaultaxesfontsize',14);
 set(gcf,'defaultlinelinewidth',1);

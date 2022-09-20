@@ -33,6 +33,7 @@ Ci = find(contains(vname, 'C'));
 switch distrib
     case 'normal',  xbnds = xd(:,1) + 4*[-1,1].*xd(:,2);    % limits are 4 standard deviations
     case 'uniform', xbnds = xd;                             % limits are parameter bounds
+    case 'bounded_normal', xbnds = xd(:,3:4);               % limits are parameter bounds
 end
 
 % just plot histograms
@@ -65,7 +66,7 @@ for mi = 1:NPHS
         title(vname{Ci(pind)});
         
         % plot normal distribution prior
-        if strcmp(distrib, 'normal')
+        if contains(distrib, 'normal')
             axes(hAx(0*NPHS^2+axi)); plotnormd(xd(Ai(pind),1), xd(Ai(pind),2), ha.BinWidth);
             axes(hAx(1*NPHS^2+axi)); plotnormd(xd(Bi(pind),1), xd(Bi(pind),2), hb.BinWidth);
             axes(hAx(2*NPHS^2+axi)); plotnormd(xd(Ci(pind),1), xd(Ci(pind),2), hc.BinWidth);

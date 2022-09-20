@@ -66,6 +66,8 @@ dhat(strcmp(dcat,'voldmix')) = log10( voldiff(1,strcmp(dcat,'voldmix')) );
 dhat(strcmp(dcat,'comp1'  )) = log10( cmpcoef(1,strcmp(dcat,'comp1'  )) );
 dhat(strcmp(dcat,'segr1'  )) = log10( segcoef(1,strcmp(dcat,'segr1'  )) );
 dhat(strcmp(dcat,'segr2'  )) = log10( segcoef(2,strcmp(dcat,'segr2'  )) );
-dhat(strcmp(dcat,'segr3'  )) = log10( segcoef(3,strcmp(dcat,'segr3'  )) );
 
+if NPHS>2
+dhat(strcmp(dcat,'segr3'  )) = log10( segcoef(3,strcmp(dcat,'segr3'  )) );
+end
 end

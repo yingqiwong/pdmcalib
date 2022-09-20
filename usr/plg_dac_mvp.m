@@ -80,7 +80,7 @@ Plot3PhaseCoeff(f, cat(3,omCv,omCf), 'PHS', PHS, 'cfname', {'\omega_{Cv}','\omeg
 % SaveFigure('Figures/plgdacmvp_omega');
 
 dscmat = [squeeze(dsc(1,2,:))'; squeeze(dsc(1,3,:))'; squeeze(dsc(2,3,:))'];
-Plot3PhaseCoeff(f, dscmat, 'scl', 'log', 'PHS', PHS, 'cfname', {'\delta_{sc}'});
+Plot3PhaseCoeff(f, dscmat,'scl','log','PHS',{'\ell s','g s','g\ell'},'cfname',{'\delta_0','\delta_0','\delta_0'});
 
 
 

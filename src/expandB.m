@@ -1,7 +1,7 @@
 
-function [xout] = normaliseB (xin, vname, scale)
+function [xout] = expandB (xin, Ai, Bi, Ci, scale)
 %
-% [xout] = normaliseB (xin, vname)
+% [xout] = expandB (xin, vname)
 %
 % recalculate the permission step locations of a matrix of models so that
 % they are normalized to 1, since the sum across each row of B should be 1
@@ -19,23 +19,22 @@ function [xout] = normaliseB (xin, vname, scale)
 
 if nargin < 3, scale = []; end
 
-NPHS = sqrt(length(vname)/3);
+Nit  = size(xin,1);
+NPHS = sqrt( length(Ai) );
 
 % collect B's
-Bvec = xin(:,contains(vname, 'B'));
+Bvec = [xin(:,Bi), zeros(Nit,NPHS)];
 if strcmp(scale, 'log'), Bvec = 10.^Bvec; end
 
 % now normalize B across each row to be 1. Loop over rows
-for pi = 1:NPHS
-    ri = pi + (0:NPHS:(NPHS^2-1))';
-    Bvec(:,ri) = Bvec(:,ri)./sum(Bvec(:,ri),2);
+for iphs = 1:NPHS
+    Bvec(:,2*NPHS+iphs) = 1 - Bvec(:,iphs) - Bvec(:,NPHS+iphs);
 end
 
+
+if strcmp(scale, 'log'), Bvec = log10(Bvec); end
+
 % prepare output
-xout = xin;
-if strcmp(scale, 'log')
-    xout(:,contains(vname, 'B')) = log10(Bvec);
-else
-    xout(:,contains(vname, 'B')) = Bvec;
-end
+xout = [xin(:,Ai), Bvec, xin(:,Ci)];
+
 end

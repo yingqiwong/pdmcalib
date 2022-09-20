@@ -25,7 +25,7 @@ fperc = fperc./ftot;
 Cseg = min(HUGE,max(TINY,  d0_mat.^2./50.*(fperc-0.001).^2.75.*fmat.^-2./eta_perc  ));
 
 % set values outside high solid fraction regime to be nans
-Cseg(fmat<0.80 | fmat>0.97) = nan;
+Cseg(fmat<0.80 | fmat>0.9999) = nan;
 
 
 

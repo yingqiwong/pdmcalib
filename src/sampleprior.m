@@ -21,7 +21,7 @@ Nvar = size(xd,1);
 
 switch distrib
     
-    case 'normal'
+    case {'normal', 'bounded_normal'}
         % where xd = [mean, standard deviation]
         ms = xd(:,1) +  xd(:,2).*randn(Nvar,Niter);
         

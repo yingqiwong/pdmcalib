@@ -1,6 +1,6 @@
-function [eta, zeta] =  visc_costa (f, eta_melt, eta_solid)
+function [eta, zeta] =  visc_costa (f, eta_melt, eta_solid, disagg)
 %
-% [eta, zeta] =  visc_costa (f, eta_melt, eta_solid)
+% [eta, zeta] =  visc_costa (f, eta_melt, eta_solid, disagg)
 % 
 % calculates the viscosity as a function of phase fraction using the 
 % Costa et al. 2009 model. But this is still a model, so we need to fit it
@@ -8,7 +8,6 @@ function [eta, zeta] =  visc_costa (f, eta_melt, eta_solid)
 % If only eta_melt is specified, I use a pre-fitted value for the plg-dac-mvp case. 
 % If eta_solid is also specified, this function automatically fits xi,
 % the parameter that controls the viscosity at solid fraction = 1.
-% 
 % 
 
 % set limit values
@@ -24,11 +23,11 @@ gamma     = 3.25;
 delta     = 24;
 xi        = 0.00148; % default, for plg-dac-mvp where solid visc = 1e16 Pa s.
 
-% calculate xi!
-if nargin==3
-    xi = run_xifit(1, xi, phistar, gamma, delta, B1, eta_melt, eta_solid);
-end
-% for olv-bas: 4e-5 
+% specify disaggregation threshold
+if nargin==4, phistar = disagg; end
+
+% calculate xi! for olv-bas: 4e-5 
+if nargin>=3, xi = run_xifit(1, xi, phistar, gamma, delta, B1, eta_melt, eta_solid); end
 
 eta  = costa_eta(feff(1,:), xi, phistar, gamma, delta, B1, eta_melt);
 zeta = min(HUGE,max(TINY, eta./feff(2,:) ));

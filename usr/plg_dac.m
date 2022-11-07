@@ -3,7 +3,7 @@
 % system based on olv-bas mixture
 % NB: using log (base e) to define probabilities throughout the code
 %
-% YQW, 29 April 2022
+% YQW, 7 Nov 2022
 
 clear all; clc; close all;
 
@@ -13,28 +13,29 @@ Addpaths; addpath('../../paramest/catmip/');
 %% specify some inputs
 
 outdir  = '../out/';        % output directory
-runID   = 'olvbas_longchain';           % name of this inversion
+runID   = 'plgdac_test';    % name of this calibration
 
 distrib = 'uniform';        % 'uniform' or 'normal' prior distribution
 
 % catmip options
-Niter   = 1e4;              % number of iterations per catmip temperature
-Nstep   = 1000;              % number of steps in MCMC in catmip
-pllopt  = 8;                % whether to run in parallel, number of workers
+Niter   = 8;              % number of iterations per catmip temperature
+Nstep   = 1e3;              % number of steps in MCMC in catmip
+pllopt  = 0;                % whether to run in parallel, number of workers
 
 %% material properties
 
-PHS  = {'olv', 'bas'}; % phase names
+PHS  = {'plg', 'dac'}; % phase names
 NPHS = length(PHS);
 
-rho0 = [ 3200; 2700];       % pure-phase densities
-eta0 = [1e+18;1e+02];       % pure-phase viscosities
+rho0 = [ 3000; 2500];       % pure-phase densities
+eta0 = [1e+16;1e+05];       % pure-phase viscosities
 d0   = [ 5e-3; 5e-3];       % characteristic size of local-scale phase constituents
+dagg = 0.75;
 
 % set permission weight parameters for coefficient closure model
-A0 = [ 0.6945, 0.1832; 0.5360, 0.1834;];  % permission slopes
-B0 = [ 0.6906, 0.3094; 0.9993, 0.0007;];  % permission step locations
-C0 = [ 0.6889, 0.1750; 0.8154, 1.5642;];  % permission step widths
+A0 = [ 0.5989, 0.1772; 0.0397, 0.1182 ];  % permission slopes
+B0 = [ 0.6870, 0.3130; 0.9998, 0.0002 ];  % permission step locations
+C0 = [ 9.0105, 0.1592; 0.7249, 3.5524 ];  % permission step widths
 
 xccep = log10([A0(:); B0(:); C0(:)]);
 

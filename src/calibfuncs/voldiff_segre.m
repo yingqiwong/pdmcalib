@@ -1,4 +1,4 @@
-function [kphi] = voldiff_segre (fc, fd, etac, d0c)
+function [kphi] = voldiff_segre (fc, fd, etac, d0c, dagg)
 % 
 % [kphi] = voldiff_segre (fc, fd, eta_melt, d0_melt)
 % 
@@ -9,6 +9,12 @@ function [kphi] = voldiff_segre (fc, fd, etac, d0c)
 % fd    dispersed phase (i.e. crystals or bubbles
 % etac  viscosity of continuous phase
 % d0c   granular scale of continuous (?) phase
+% dagg  disaggregation threshold for dispersed phase to define range of 
+%           applicability
+
+% range of applicability
+fcmax = 0.999;
+fcmin = min((1-dagg)+0.2, fcmax-0.1);
 
 % normalise phase fractions into two phases
 fnorm = fc + fd;
@@ -21,5 +27,5 @@ kphi = 1.*d0c.^2./etac.*(1-fd./0.71).^2.*S.^(1/2);
 % drop geometric prefactor 11.4*2/9
 
 % set values outside high liquid fraction regime to be nans
-kphi(fc<0.60 | fc>0.999) = nan;
+kphi(fc<fcmin | fc>fcmax) = nan;
 end

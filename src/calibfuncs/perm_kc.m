@@ -16,16 +16,18 @@ function [Cseg] = perm_kc (fmat, fperc, eta_perc, d0_mat)
 TINY = 1e-32;
 HUGE = 1e+32;
 
+fmatmax = 0.99;
+
 % normalise phase fractions into two phases
 ftot  = fmat + fperc;
 fmat  = fmat./ftot;
 fperc = fperc./ftot;
 
 % Kozeny-Carman Darcy percolation coefficient
-Cseg = min(HUGE,max(TINY,  d0_mat.^2./50.*(fperc-0.001).^2.75.*fmat.^-2./eta_perc  ));
+Cseg = min(HUGE,max(TINY,  d0_mat.^2./50.*(fperc-(1-fmatmax)).^2.75.*fmat.^-2./eta_perc  ));
 
 % set values outside high solid fraction regime to be nans
-Cseg(fmat<0.80 | fmat>0.999) = nan;
+Cseg(fmat<0.80 | fmat>(fmatmax-0.01)) = nan;
 
 
 

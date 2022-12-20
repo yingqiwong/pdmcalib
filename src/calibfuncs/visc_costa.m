@@ -1,4 +1,4 @@
-function [eta, zeta] =  visc_costa (f, eta_melt, eta_solid, disagg)
+function [eta, zeta] =  visc_costa (f, eta_melt, eta_solid, varargin)
 %
 % [eta, zeta] =  visc_costa (f, eta_melt, eta_solid, disagg)
 % 
@@ -14,38 +14,47 @@ function [eta, zeta] =  visc_costa (f, eta_melt, eta_solid, disagg)
 TINY = 1e-32;
 HUGE = 1e+32;
 
+% normalize solid (1) and melt (2) fractions
 feff = f(1:2,:)./sum(f(1:2,:),1);
 
-% Costa+ effective mixture shear and compaction viscosities  (Costa et al., 2009)
-B1        = 4.0;  % theoretical value = 2.5
-phistar   = 0.62;
-gamma     = 3.25;
-delta     = 24;
-xi        = 0.00148; % default, for plg-dac-mvp where solid visc = 1e16 Pa s.
+% load parameters
+[B1, phistar, gamma, delta, xi, fitxi] = defaultparams(varargin{:});
 
-% specify disaggregation threshold
-if nargin==4, phistar = disagg; end
+% calculate xi! for olv-bas: 4e-5
+if (fitxi)
+    fprintf(1,'\n\n Running fsolve for costa model to fit \n');
+    fprintf(1,'  xi to solid viscosity of %.0e Pa s.\n', eta_solid);
+    xi = fsolve(@(xif) log10(costa_eta(1, eta_melt, B1, phistar, gamma, delta, xif)) - log10(eta_solid), xi);
+    fprintf(1, '\n\nBest fit xi = %.2e.\n\n', xi);
+end
 
-% calculate xi! for olv-bas: 4e-5 
-if nargin>=3, xi = run_xifit(1, xi, phistar, gamma, delta, B1, eta_melt, eta_solid); end
-
-eta  = costa_eta(feff(1,:), xi, phistar, gamma, delta, B1, eta_melt);
+eta  = costa_eta(feff(1,:), eta_melt, B1, phistar, gamma, delta, xi);
 zeta = min(HUGE,max(TINY, eta./feff(2,:) ));
 
 end
 
-function [xifit] = run_xifit (f, xi0, phistar, gamma, delta, B1, eta_melt, eta_solid)
+function [B1, phistar, gamma, delta, xi, fitxi] = defaultparams (varargin)
 
-fprintf(1,'\n\n Running fsolve for costa model to fit \n');
-fprintf(1,'  xi parameter to solid viscosity of %.0e Pa s.\n', eta_solid);
+p = inputParser;
+p.addParameter('B1'     ,  4.0     , @isnumeric);
+p.addParameter('phistar',  0.62    , @isnumeric);
+p.addParameter('gamma'  ,  3.25    , @isnumeric);
+p.addParameter('delta'  ,  24.0    , @isnumeric);
+p.addParameter('xi'     ,  4e-5    , @isnumeric);
+p.addParameter('fitxi'  ,  true    , @islogical);
+p.addParameter('fitdelta', true    , @islogical);
+p.parse(varargin{:}); 
 
-xifit   = fsolve(@(xif) log10(costa_eta(f, xif, phistar, gamma, delta, B1, eta_melt)) - log10(eta_solid), xi0);
-
-fprintf(1, '\n\nBest fit xi = %.2e.\n\n', xifit);
+B1      = p.Results.B1;
+phistar = p.Results.phistar;
+gamma   = p.Results.gamma;
+delta   = p.Results.delta;
+xi      = p.Results.xi;
+fitxi   = p.Results.fitxi;
 
 end
 
-function [eta] = costa_eta (f, xi, phistar, gamma, delta, B1, eta_melt)
+function [eta] = costa_eta (f, eta_melt, B1, phistar, gamma, delta, xi)
 
 fscl= f./phistar;
 h   = (1-xi).*erf(sqrt(pi)./(2.*(1-xi)).*fscl.*(1+fscl.^gamma));

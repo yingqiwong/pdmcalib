@@ -1,10 +1,11 @@
-function [eta] = visc_er (f, eta_melt)
+function [eta] = visc_er (f, eta_melt, fsmax)
 
 % Einstein-Roscoe effective liquid shear viscosity
-h    = 0.56;
-B1   = 4.0;  % theoretical value = 2.5
-eta  = eta_melt .* max(1e-20,1-f(1,:)./h).^-(h.*B1);
+if nargin==2, fsmax = 0.56; end
 
-eta(f(2,:)<0.4) = nan;
+B1   = 4.0;  % theoretical value = 2.5
+eta  = eta_melt .* max(1e-20,1-f(1,:)./fsmax).^-(fsmax.*B1);
+
+eta(f(2,:)<(fsmax-0.2)) = nan;
 
 end

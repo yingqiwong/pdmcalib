@@ -13,26 +13,27 @@ Addpaths; addpath('../../paramest/catmip/');
 %% specify some inputs
 
 outdir  = '../out/';        % output directory
-runID   = 'plgdac_test';    % name of this calibration
+runID   = 'plgdac_largeNiter_2';    % name of this calibration
 
 distrib = 'uniform';        % 'uniform' or 'normal' prior distribution
 
 % catmip options
-Niter   = 8;              % number of iterations per catmip temperature
+Niter   = 8^5;              % number of iterations per catmip temperature
 Nstep   = 1e3;              % number of steps in MCMC in catmip
-pllopt  = 0;                % whether to run in parallel, number of workers
+pllopt  = 8;                % whether to run in parallel, number of workers
 
 %% material properties
 
 PHS  = {'plg', 'dac'}; % phase names
 NPHS = length(PHS);
 
-rho0 = [ 3000; 2500];       % pure-phase densities
+rho0 = [ 2600; 2300];       % pure-phase densities
 eta0 = [1e+16;1e+05];       % pure-phase viscosities
 d0   = [ 5e-3; 5e-3];       % characteristic size of local-scale phase constituents
-dagg = 0.75;
+costa_phistar = 0.52;
 
 % set permission weight parameters for coefficient closure model
+% define olv-bas model for comparison (not used in model)
 A0 = [ 0.5989, 0.1772; 0.0397, 0.1182 ];  % permission slopes
 B0 = [ 0.6870, 0.3130; 0.9998, 0.0002 ];  % permission step locations
 C0 = [ 9.0105, 0.1592; 0.7249, 3.5524 ];  % permission step widths
@@ -75,27 +76,27 @@ diary(logfile)
 
 %% define the models to calibrate against
 
-rng(5);
+rng(10);
 dir('../src/calibfuncs/*.m')
 
 Nf = 10001;     % number of points to generate data on
-Ns = 400;        % number of points to subsample for inversion
+Ns = 200;        % number of points to subsample for inversion
 
 fs  = linspace(0,1,Nf);
 fsl = [fs; 1-fs];
 
 % viscosity along solid liquid axis
-[ eta_co,   zeta_co] = visc_costa(fsl, eta0(2), eta0(1));
-[ eta_co,  f_eta_co] = samplevalidvalues(log10( eta_co),fsl,Ns,1);
-[zeta_co, f_zeta_co] = samplevalidvalues(log10(zeta_co),fsl,Ns,1);
+[ eta_co,   zeta_co] = visc_costa(fsl, eta0(2), eta0(1), 'phistar', costa_phistar);
+[ eta_co,  f_eta_co] = samplevalidvalues(log10( eta_co),fsl,Ns,0);
+[zeta_co, f_zeta_co] = samplevalidvalues(log10(zeta_co),fsl,Ns,0);
 
 % hindered Stokes on dispersed solid phase
-[vold_hs,   seg_hs] = voldiff_hs(fsl(2,:), fsl(1,:), eta0(2), d0(1));
+[vold_hs,   seg_hs] = voldiff_hs(fsl(2,:), fsl(1,:), eta0(2), d0(1), costa_phistar-0.05);
 [vold_hs,f_vold_hs] = samplevalidvalues(log10(vold_hs),fsl,Ns,0);
 [ seg_hs, f_seg_hs] = samplevalidvalues(log10( seg_hs),fsl,Ns,0);
 
 % Segre model for dispersed solid phase
-[vold_sg          ] = voldiff_segre(fsl(2,:), fsl(1,:), eta0(2), d0(2));
+[vold_sg          ] = voldiff_segre(fsl(2,:), fsl(1,:), eta0(2), d0(2), costa_phistar-0.05);
 [vold_sg,f_vold_sg] = samplevalidvalues(log10(vold_sg),fsl,Ns,0);
 
 % kozeny carman on melt percolation
@@ -107,7 +108,7 @@ fsl = [fs; 1-fs];
 % possible options for dcat:
 % etamix    mixture viscosity
 % voldmix   mixture volume diffusion
-% comp1     compaction coefficient of phase 1
+% comp1     compaction  coefficient of phase 1
 % segr1     segregation coefficient of phase 1
 % segr2     segregation coefficient of phase 2
 % segr3     segregation coefficient of phase 3
@@ -139,83 +140,5 @@ plotfittodata(ftot, Ns, data, dhf(xccep), dcat, sigm);
 
 %% plot outputs
 
-xnb = normaliseB(xout, vname, 'log');
-
-% posterior distributions
-[xMAP] = plotdistribs(xnb, Pout, vname, xd, distrib);
-SaveFigure([rundir runID '_posteriordistributions.pdf']);
-
-% corner plots to see correlations between posterior distributions
-figs = plotcorrelations(xnb, Pout, vname, xd, distrib);
-for fi = 1:length(figs)
-    SaveFigure([rundir runID '_correlations_' num2str(fi) '.pdf'], figs(fi));
-end
-
-% print out MAP model
-[A_MAP, B_MAP, C_MAP] = permvec2mat(xMAP, 'log')
-
-% plot the fit to the datasets
-plotfittodata(ftot, Ns, data, dhf(xccep), dcat, sigm);
-SaveFigure([rundir runID '_xMAP_fittodata.pdf']);
-
-%%  now calculate connectivity and coefficients for plotting
-
-[dsc, KvMAP, KfMAP, CvMAP, CfMAP, XfMAP] = SegCompLength(fsl, eta0, d0, A_MAP, B_MAP, C_MAP);
-[dsc, Kv0  , Kf0  , Cv0  , Cf0  , Xf0  ] = SegCompLength(fsl, eta0, d0, A0   , B0   , C0   );
-
-
-figure;
-hAx = setupaxes(3,2,'gaph',0.8,'gapw',0.3);
-set(gcf,'defaultaxescolororder',repmat(lines(2),2,1));
-
-axes(hAx(1));
-plot(fsl(2,:), squeeze(XfMAP(1,1,:)), '-'); hold on;
-plot(fsl(2,:), squeeze(XfMAP(2,2,:)), '-'); 
-plot(fsl(2,:), squeeze(  Xf0(1,1,:)), ':');
-plot(fsl(2,:), squeeze(  Xf0(2,2,:)), ':'); hold off;
-ylabel('intra-phase weights');
-
-axes(hAx(2));
-plot(fsl(2,:), squeeze(XfMAP(1,2,:)), '-'); hold on;
-plot(fsl(2,:), squeeze(XfMAP(2,1,:)), '-'); 
-plot(fsl(2,:), squeeze(  Xf0(1,2,:)), ':'); 
-plot(fsl(2,:), squeeze(  Xf0(2,1,:)), ':'); hold off;
-ylabel('inter-phase weights');
-set(gca,'YAxisLocation','right');
-
-axes(hAx(3));
-semilogy(fsl(2,:), KvMAP./fsl, '-'); hold on;
-semilogy(fsl(2,:),   Kv0./fsl, ':'); hold off;
-ylabel('effective viscosity [Pa s]');
-
-axes(hAx(4));
-semilogy(fsl(2,:), KfMAP./fsl, '-'); hold on;
-semilogy(fsl(2,:),   Kf0./fsl, ':'); hold off;
-ylabel('volume diffusivity [m2/Pa s]');
-set(gca,'YAxisLocation','right');
-
-axes(hAx(5));
-semilogy(fsl(2,:), fsl.^2./CvMAP, '-'); hold on;
-semilogy(fsl(2,:), fsl.^2./Cv0  , ':'); hold off;
-xlabel('liquid fraction');
-ylabel('segregation coefficient [m2/Pa s]');
-
-axes(hAx(6));
-semilogy(fsl(2,:), fsl.^2./CfMAP, '-'); hold on;
-semilogy(fsl(2,:), fsl.^2./Cf0  , ':'); hold off;
-xlabel('liquid fraction');
-ylabel('compaction coefficient [Pa s]');
-set(gca,'YAxisLocation','right');
-
-annotation('textbox','Position',[0.4,0.88,0.2,0.1],'FitBoxToText','on',...
-    'String','solid: MAP model from CATMIP, dotted: previous calib',...
-    'HorizontalAlignment','center','EdgeColor','none','FontSize',16);
-SaveFigure([rundir runID '_comparexMAPtopreviouscalib.pdf']);
-
-%% save outputs
-
-save([rundir runID '_par.mat'],'PHS','runID','distrib','Niter','Nstep','pllopt','vname',...
-    'rho0','eta0','d0','xccep','xd','ftot','data','dcat','sigm','xout','Pout');
-diary off
-
+run('../src/output');
 
